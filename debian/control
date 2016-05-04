@@ -1,7 +1,7 @@
 Source: ddelta 
 Section: misc
 Priority: optional
-Maintainer: Operations Team <operations@satellogic.com>
+Maintainer: Operations Team <operations@needno.space>
 Build-Depends: debhelper (>= 9)
 Standards-Version: 3.9.6
 
