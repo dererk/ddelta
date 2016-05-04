@@ -1,0 +1,17 @@
+Source: ddelta 
+Section: misc
+Priority: optional
+Maintainer: Operations Team <operations@satellogic.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.6
+
+Package: ddelta 
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ binutils,
+ xdelta3,
+ xz-utils | pxz,
+Description: debian package minimization tool for low bandwidth xfer 
+ based on xdelta3 differential compression tools, it packages a transmitable 
+ VCDIFF (RFC 3284) delta compression for both, control and data containers of
+ the Debian packaging format (.deb)
