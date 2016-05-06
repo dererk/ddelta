@@ -4,7 +4,11 @@ import tempfile
 from subprocess import Popen, PIPE
 
 
-XDELTA_PARAMS="-9 -S lzma"
+# XXX :: TODO
+# Some deb formats appears to be -9 while others -1
+GZIP_PARAMS   = "-9 -n"
+# Hack, works much better than default
+XDELTA_PARAMS = "-9 -S lzma"
 
 
 def sh(cmd):
@@ -40,12 +44,10 @@ def generate_delta(source, target, delta_file):
 
 
 def package_xfer_ddelta(control_delta, data_delta, xfer_file):
-    print("About to run: ar Drcs {} {} {}".format(xfer_file, control_delta, data_delta))
     sh("ar Drcs {} {} {}".format(xfer_file, control_delta, data_delta))
 
 
 def apply_delta_target(source, delta, target):
-    print("Abount to run: xdelta3 -d -s {} {} {}".format(source, delta, target))
     sh("xdelta3 -d -s {} {} {}".format(source, delta, target))
 
 
@@ -65,11 +67,11 @@ def generate_deb(path, debian_package_name, version="2.0"):
     # level 1, no file obj names (debian control standard)
     control = os.path.join(path, "control.tar")
     control_gz = os.path.join(path, "control.tar.gz")
-    sh("gzip -1 -n {}".format(control))
+    sh("gzip {} {}".format(GZIP_PARAMS, control))
 
     output_deb = os.path.join(path, "{}.deb".format(debian_package_name))
     sh("ar rcs {} {}/debian-binary {} {}".format(output_deb, path, control_gz, data_xz))
-    print("{} generated successfully".format(output_deb))
+    return output_deb
 
 
 def repackage_from_xfer_ddelta(source, xfer_file):
@@ -90,7 +92,7 @@ def repackage_from_xfer_ddelta(source, xfer_file):
     apply_delta_target(source_data, delta_data, target_data)
     apply_delta_target(source_control, delta_control, target_control)
 
-    return source_dir
+    return tmp_dir
 
 
 def prepare_xfer_ddelta(old_pkg, new_pkg, xfer_file):
