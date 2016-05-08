@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import ddelta
+from ddelta import ddelta
 import sys
 from os import stat
 from time import monotonic
