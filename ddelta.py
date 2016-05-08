@@ -1,5 +1,7 @@
 import lzma
 import os
+import re
+import shutil
 import tempfile
 from subprocess import Popen, PIPE
 
@@ -19,13 +21,19 @@ def sh(cmd):
     return stdout
 
 
-def parse_debname(filename):
+def deb_parse_debname(filename):
     filename, ext = os.path.splitext(os.path.basename(filename))
     debian_name, version, arch = filename.split("_")
     return debian_name, version, arch
 
 
-def extract_ar(archive_file, output_dir):
+def delta_get_friendly_name(source, target):
+    debname_source, version_old, = deb_query_package(source)
+    debname_target, version_new, = deb_query_package(target)
+    return "{}_{}-to-{}.ar".format(debname_target, version_old, version_new)
+
+
+def helper_extract_ar(archive_file, output_dir):
     sh("cd {} && ar x {}".format(output_dir, archive_file))
 
 
@@ -38,8 +46,6 @@ def unpack(package, outdir):
 
 
 def generate_delta(source, target, delta_file):
-    def extract_ar(archive_file, output_dir):
-        sh("cd {} && ar x {}".format(output_dir, archive_file))
     sh("xdelta3 {} -s {} {} {}".format(XDELTA_PARAMS, source, target, delta_file))
 
 
@@ -47,11 +53,26 @@ def package_xfer_ddelta(control_delta, data_delta, xfer_file):
     sh("ar Drcs {} {} {}".format(xfer_file, control_delta, data_delta))
 
 
-def apply_delta_target(source, delta, target):
+def delta_apply_delta_target(source, delta, target):
     sh("xdelta3 -d -s {} {} {}".format(source, delta, target))
 
 
-def generate_deb(path, debian_package_name, version="2.0"):
+def deb_query_package(package):
+    """ Default format showformat='${Package}\t${Version}' """
+    return sh("dpkg-deb --show {}".format(package)).decode('utf-8').split()
+
+
+def deb_rename_file_from_metadata(debian_package):
+    try:
+        output = sh("dpkg-name {}".format(debian_package))
+        match = re.findall(b'\xc2\xab(.*?)\xc2\xbb', output, re.DOTALL)
+
+        return match[1].decode('utf-8')
+    except:
+        return False
+
+
+def deb_generate_final_package(path, debian_package_name, version="2.0"):
     # http://tldp.org/HOWTO/html_single/Debian-Binary-Package-Building-HOWTO/#AEN66
     binary_path = os.path.join(path, "debian-binary")
     open(binary_path, "w").write("{}\n".format(version))
@@ -74,12 +95,14 @@ def generate_deb(path, debian_package_name, version="2.0"):
     return output_deb
 
 
-def repackage_from_xfer_ddelta(source, xfer_file):
+def delta_repackage_from_ddelta_xfer(source, xfer_file):
+    """  Applies deltas to both, control and data containers """
+
     tmp_dir = tempfile.mkdtemp()
     source_dir = os.path.join(tmp_dir, "source")
     os.mkdir(source_dir)
     unpack(source, source_dir)
-    extract_ar(xfer_file, source_dir)
+    helper_extract_ar(xfer_file, source_dir)
 
     source_data = os.path.join(source_dir, "data.tar")
     target_data = os.path.join(tmp_dir, "data.tar")
@@ -89,13 +112,20 @@ def repackage_from_xfer_ddelta(source, xfer_file):
     target_control = os.path.join(tmp_dir, "control.tar")
     delta_control = os.path.join(source_dir, "control.xdelta3")
 
-    apply_delta_target(source_data, delta_data, target_data)
-    apply_delta_target(source_control, delta_control, target_control)
+    delta_apply_delta_target(source_data, delta_data, target_data)
+    delta_apply_delta_target(source_control, delta_control, target_control)
 
     return tmp_dir
 
 
-def prepare_xfer_ddelta(old_pkg, new_pkg, xfer_file):
+def delta_prepare_ddelta_xfer(old_pkg, new_pkg, xfer_file):
+    """
+    Generates a 'package delta', consisting on control and data xdelta3 files,
+    packaged together using gnu archive for transfering small footprints
+    gnu archive 'ar'  footprint equals 56 bytes
+    gnu tarball 'tar' footprint equals 1024 bytes
+    """
+
     tmp_dir = tempfile.mkdtemp()
     source_dir = os.path.join(tmp_dir, "source")
     target_dir = os.path.join(tmp_dir, "target")
@@ -120,3 +150,18 @@ def prepare_xfer_ddelta(old_pkg, new_pkg, xfer_file):
     package_xfer_ddelta(delta_control, delta_data, xfer_file_path)
 
     return xfer_file_path
+
+
+def deb_check_package_integrity(debian_package):
+    tmp_dir = tempfile.mkdtemp()
+    shutil.copy(debian_package, tmp_dir)
+    os.chdir(tmp_dir)
+    sh("ar x {}".format(debian_package))
+    sh("tar zxf {}".format('control.tar.gz'))
+    sh("tar Jxf {}".format('data.tar.xz'))
+
+    try:
+        sh("md5sum --quiet --check md5sums")
+    except BaseException:
+        return False
+    return True
