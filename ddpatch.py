@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', "--delta", default=None, help="Path to package delta xfer to be read from")
     parser.add_argument('-s', "--source", default=None, help="Source path from package to be used as original package")
     parser.add_argument('-c', "--check", action="store_true", help="Verify that produced package delta xfer patches properly once built")
+    parser.add_argument('-v', "--verbose", action="store_true", help="Prints a more vebose detail of the process, summary and performance")
     args = parser.parse_args()
 
     out_file = ''
@@ -30,9 +31,14 @@ if __name__ == "__main__":
 
         if args.check:
             if ddelta.deb_check_package_integrity(out_file):
-                print("Integrity Check OK")
+                ret = 0
             else:
-                print("Integrity Check FAILED!!!")
+                ret = 1
+        if args.verbose:
+            print("Integrity Check OK")
+        else:
+            print("Integrity Check FAILED!!!")
+            sys.exit(1)
 
         print(out_file)
 
