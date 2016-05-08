@@ -6,3 +6,7 @@ export DH_VERBOSE=1
 
 %:
 	dh $@
+
+override_dh_install:
+	dh_install
+	touch $(CURDIR)/debian/ddelta/usr/lib/python3/dist-packages/ddelta/__init__.py
