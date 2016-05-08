@@ -9,8 +9,9 @@ Package: ddelta
 Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends},
  binutils,
+ dpkg-repack,
  xdelta3,
- xz-utils | pxz,
+ xz-utils | pxz
 Description: debian package minimization tool for low bandwidth xfer 
  based on xdelta3 differential compression tools, it packages a transmitable 
  VCDIFF (RFC 3284) delta compression for both, control and data containers of
