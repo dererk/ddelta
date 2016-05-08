@@ -72,7 +72,7 @@ def deb_rename_file_from_metadata(debian_package):
         return False
 
 
-def deb_generate_final_package(path, debian_package_name, version="2.0"):
+def deb_generate_final_package(path, debian_package_name="dummy", version="2.0"):
     # http://tldp.org/HOWTO/html_single/Debian-Binary-Package-Building-HOWTO/#AEN66
     binary_path = os.path.join(path, "debian-binary")
     open(binary_path, "w").write("{}\n".format(version))
