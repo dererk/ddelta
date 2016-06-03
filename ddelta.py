@@ -64,8 +64,8 @@ def deb_query_package(package):
 
 def deb_rename_file_from_metadata(debian_package):
     try:
-        output = sh("dpkg-name {}".format(debian_package))
-        match = re.findall(b'\xc2\xab(.*?)\xc2\xbb', output, re.DOTALL)
+        output = sh("LC_ALL= LANG= LANGUAGE= dpkg-name {}".format(debian_package))
+        match = re.findall(b'\'(.*?)\'', output, re.DOTALL)
 
         return match[1].decode('utf-8')
     except:
