@@ -19,7 +19,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='debian package minimization tool for low bandwidth xfers')
     parser.add_argument('-d', "--delta", default=None, help="Path to package delta xfer to be read from")
     parser.add_argument('-s', "--source", default=None, help="Source path from package to be used as original package")
-    parser.add_argument('-c', "--check", action="store_true", help="Verify that produced package delta xfer patches properly once built")
     parser.add_argument('-v', "--verbose", action="store_true", help="Prints a more vebose detail of the process, summary and performance")
     args = parser.parse_args()
 
@@ -29,16 +28,12 @@ if __name__ == "__main__":
         out_file = ddelta.deb_generate_final_package(applied_delta)
         out_file = ddelta.deb_rename_file_from_metadata(out_file)
 
-        if args.check:
-            if ddelta.deb_check_package_integrity(out_file):
-                ret = 0
+        if ddelta.deb_check_package_integrity(out_file):
+            if args.verbose:
+                print("Integrity Check OK")
             else:
-                ret = 1
-        if args.verbose:
-            print("Integrity Check OK")
-        else:
-            print("Integrity Check FAILED!!!")
-            sys.exit(1)
+                print("Integrity Check FAILED!!!")
+                sys.exit(1)
 
         print(out_file)
 
